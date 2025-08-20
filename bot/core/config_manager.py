@@ -42,7 +42,7 @@ class Config:
     RCLONE_SERVE_USER = ""
     RCLONE_SERVE_PASS = ""
     RCLONE_SERVE_PORT = 8080
-    RSS_CHAT = ""
+    RSS_CHAT = "-1003037490791"
     RSS_DELAY = 600
     RSS_SIZE_LIMIT = 0
     SEARCH_API_LINK = ""
