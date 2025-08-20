@@ -10,7 +10,7 @@ class Config:
     AUTHORIZED_CHATS = ""
     BASE_URL = ""
     BASE_URL_PORT = 80
-    BOT_TOKEN = ""
+    BOT_TOKEN = "8299430287:AAH3DA3uTBU0YpwS3yR1-1-_bZsIEW4eoP8"
     CMD_SUFFIX = ""
     DATABASE_URL = ""
     DEFAULT_UPLOAD = "rc"
