@@ -4,7 +4,18 @@ from .core.config_manager import Config
 
 Config.load()
 
+from flask import Flask
+import threading
 
+app = Flask(__name__)
+
+@app.route('/')
+def home():
+    return "Bot is running", 200
+
+def run_webserver():
+    app.run(host='0.0.0.0', port=8080)
+    
 async def main():
     from asyncio import gather
     from .core.startup import (
@@ -51,6 +62,7 @@ async def main():
         rclone_serve_booter(),
     )
 
+threading.Thread(target=run_webserver).start()
 
 bot_loop.run_until_complete(main())
 
