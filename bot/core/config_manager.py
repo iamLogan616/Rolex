@@ -32,7 +32,7 @@ class Config:
     HYDRA_IP = ""
     HYDRA_API_KEY = ""
     NAME_SUBSTITUTE = ""
-    OWNER_ID = 0
+    OWNER_ID = 1206988513
     QUEUE_ALL = 0
     QUEUE_DOWNLOAD = 0
     QUEUE_UPLOAD = 0
