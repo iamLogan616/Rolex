@@ -12,7 +12,7 @@ class Config:
     BASE_URL_PORT = 80
     BOT_TOKEN = "8237244409:AAHCq5hUQMDU6kB9Sco95jD_Bt0ZQOriRCc"
     CMD_SUFFIX = ""
-    DATABASE_URL = "mongodb+srv://Siva:siva444@cluster0.bhuvc.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
+    DATABASE_URL = ""
     DEFAULT_UPLOAD = "rc"
     EQUAL_SPLITS = False
     EXCLUDED_EXTENSIONS = ""
