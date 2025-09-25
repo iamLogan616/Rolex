@@ -6,7 +6,7 @@ from bot import LOGGER
 
 
 class Config:
-    AS_DOCUMENT = False
+    AS_DOCUMENT = True
     AUTHORIZED_CHATS = ""
     BASE_URL = ""
     BASE_URL_PORT = 80
@@ -32,7 +32,7 @@ class Config:
     HYDRA_IP = ""
     HYDRA_API_KEY = ""
     NAME_SUBSTITUTE = ""
-    OWNER_ID = 1206988513
+    OWNER_ID = 6048003536
     QUEUE_ALL = 0
     QUEUE_DOWNLOAD = 0
     QUEUE_UPLOAD = 0
@@ -42,7 +42,7 @@ class Config:
     RCLONE_SERVE_USER = ""
     RCLONE_SERVE_PASS = ""
     RCLONE_SERVE_PORT = 8080
-    RSS_CHAT = "-1003037490791"
+    RSS_CHAT = ""
     RSS_DELAY = 600
     RSS_SIZE_LIMIT = 0
     SEARCH_API_LINK = ""
@@ -53,8 +53,8 @@ class Config:
     STOP_DUPLICATE = False
     STREAMWISH_API = ""
     SUDO_USERS = ""
-    TELEGRAM_API = "29542645"
-    TELEGRAM_HASH = "06e505b8418565356ae79365df5d69e0"
+    TELEGRAM_API = "27050683"
+    TELEGRAM_HASH = "013a5c0b1f2c320b98236cf212835d59"
     TG_PROXY = {}
     THUMBNAIL_LAYOUT = ""
     TORRENT_TIMEOUT = 0
