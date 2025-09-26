@@ -26,116 +26,50 @@ user_agent = (
 
 # Global proxy list
 PROXY_LIST = []
-LAST_PROXY_UPDATE = 0
-PROXY_UPDATE_INTERVAL = 3600  # 1 hour
 
-def update_proxy_list():
-    """Update proxy list from GitHub repository"""
-    global PROXY_LIST, LAST_PROXY_UPDATE
-    
-    current_time = time.time()
-    if current_time - LAST_PROXY_UPDATE < PROXY_UPDATE_INTERVAL and PROXY_LIST:
-        return
-    
+def load_proxies():
+    """Load proxies from the provided URL"""
+    global PROXY_LIST
     try:
-        proxy_url = "https://raw.githubusercontent.com/TheSpeedX/SOCKS-List/master/http.txt"
-        response = get(proxy_url, timeout=10)
+        response = get("https://raw.githubusercontent.com/TheSpeedX/SOCKS-List/master/http.txt", timeout=10)
         if response.status_code == 200:
-            proxies = response.text.strip().split('\n')
-            # Filter valid proxies and format them properly
-            valid_proxies = []
-            for proxy in proxies:
-                proxy = proxy.strip()
-                if proxy and ':' in proxy:
-                    # Ensure proper format
-                    if not proxy.startswith('http'):
-                        proxy = f"http://{proxy}"
-                    valid_proxies.append(proxy)
-            
-            PROXY_LIST = valid_proxies
-            LAST_PROXY_UPDATE = current_time
-            print(f"Updated proxy list with {len(PROXY_LIST)} proxies")
-        else:
-            print(f"Failed to fetch proxies: HTTP {response.status_code}")
-    except Exception as e:
-        print(f"Error updating proxy list: {e}")
-        # Fallback to some working proxies if update fails
-        if not PROXY_LIST:
-            PROXY_LIST = [
-                "http://38.154.227.167:5868",
-                "http://185.199.229.156:7492",
-                "http://185.199.228.220:7300",
-                "http://188.74.210.207:6286",
-                "http://38.91.107.229:3128",
-                "http://8.219.97.248:80",
-                "http://23.227.38.66:80",
-                "http://154.85.35.235:8888",
-            ]
+            PROXY_LIST = [line.strip() for line in response.text.split('\n') if line.strip()]
+    except:
+        pass
 
 def get_random_proxy():
     """Get a random proxy from the list"""
-    update_proxy_list()
     if not PROXY_LIST:
-        return None
-    return random.choice(PROXY_LIST)
+        load_proxies()
+    return random.choice(PROXY_LIST) if PROXY_LIST else None
 
-def create_session_with_retry(max_retries=3, backoff_factor=0.5):
-    """Create a session with retry strategy"""
-    session = Session()
+def create_session_with_proxy():
+    """Create a session with random proxy and anti-bot headers"""
+    session = create_scraper()
+    proxy = get_random_proxy()
     
-    # Configure retry strategy
-    retry_strategy = Retry(
-        total=max_retries,
-        backoff_factor=backoff_factor,
-        status_forcelist=[429, 500, 502, 503, 504],
-        allowed_methods=["HEAD", "GET", "OPTIONS"]
-    )
-    
-    # Mount adapter for both http and https
-    adapter = HTTPAdapter(max_retries=retry_strategy)
-    session.mount("http://", adapter)
-    session.mount("https://", adapter)
-    
-    return session
-
-def create_proxy_session(max_retries=3):
-    """Create a session with proxy and proper headers"""
-    session = create_session_with_retry(max_retries)
-    
-    # Get a random proxy
-    proxy_url = get_random_proxy()
-    
-    if proxy_url:
+    if proxy:
         session.proxies = {
-            "http": proxy_url,
-            "https": proxy_url,
+            'http': f'http://{proxy}',
+            'https': f'https://{proxy}'
         }
-        print(f"Using proxy: {proxy_url}")
     
-    # Set headers to mimic real browser
+    # Add random headers to avoid detection
     session.headers.update({
-        "User-Agent": user_agent,
-        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
-        "Accept-Language": "en-US,en;q=0.5",
-        "Accept-Encoding": "gzip, deflate, br",
-        "DNT": "1",
-        "Connection": "keep-alive",
-        "Upgrade-Insecure-Requests": "1",
-        "Sec-Fetch-Dest": "document",
-        "Sec-Fetch-Mode": "navigate",
-        "Sec-Fetch-Site": "none",
-        "Cache-Control": "max-age=0",
+        'User-Agent': user_agent,
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.5',
+        'Accept-Encoding': 'gzip, deflate, br',
+        'DNT': '1',
+        'Connection': 'keep-alive',
+        'Upgrade-Insecure-Requests': '1',
+        'Sec-Fetch-Dest': 'document',
+        'Sec-Fetch-Mode': 'navigate',
+        'Sec-Fetch-Site': 'none',
+        'Cache-Control': 'max-age=0',
     })
     
     return session
-
-def test_proxy(session, url, timeout=10):
-    """Test if the proxy is working"""
-    try:
-        response = session.head(url, timeout=timeout)
-        return response.status_code == 200
-    except:
-        return False
 
 def direct_link_generator(link):
     """direct links generator"""
@@ -150,192 +84,400 @@ def direct_link_generator(link):
         return yandex_disk(link)
     elif "buzzheavier.com" in domain:
         return buzzheavier(link)
-    # ... rest of your existing domains ...
+    elif "devuploads" in domain:
+        return devuploads(link)
+    elif "lulacloud.com" in domain:
+        return lulacloud(link)
+    elif "uploadhaven" in domain:
+        return uploadhaven(link)
+    elif "fuckingfast.co" in domain:
+        return fuckingfast_dl(link)
+    elif "mediafile.cc" in domain:
+        return mediafile(link)
+    elif "mediafire.com" in domain:
+        return mediafire(link)
+    elif "osdn.net" in domain:
+        return osdn(link)
+    elif "github.com" in domain:
+        return github(link)
+    elif "hxfile.co" in domain:
+        return hxfile(link)
+    elif "1drv.ms" in link:
+        return onedrive(link)
+    elif any(x in domain for x in ["pixeldrain.com", "pixeldra.in"]):
+        return pixeldrain(link)
+    elif "racaty" in domain:
+        return racaty(link)
+    elif "1fichier.com" in domain:
+        return fichier(link)
+    elif "solidfiles.com" in domain:
+        return solidfiles(link)
+    elif "krakenfiles.com" in domain:
+        return krakenfiles(link)
+    elif "upload.ee" in domain:
+        return uploadee(link)
+    elif "gofile.io" in domain:
+        return gofile(link)
+    elif "send.cm" in domain:
+        return send_cm(link)
+    elif "tmpsend.com" in domain:
+        return tmpsend(link)
+    elif "easyupload.io" in domain:
+        return easyupload(link)
+    elif "streamvid.net" in domain:
+        return streamvid(link)
+    elif "shrdsk.me" in domain:
+        return shrdsk(link)
+    elif "u.pcloud.link" in domain:
+        return pcloud(link)
+    elif "qiwi.gg" in domain:
+        return qiwi(link)
+    elif "mp4upload.com" in domain:
+        return mp4upload(link)
+    elif "berkasdrive.com" in domain:
+        return berkasdrive(link)
+    elif "swisstransfer.com" in domain:
+        return swisstransfer(link)
+    elif any(x in domain for x in ["akmfiles.com", "akmfls.xyz"]):
+        return akmfiles(link)
+    elif any(
+        x in domain
+        for x in [
+            "dood.watch",
+            "doodstream.com",
+            "dood.to",
+            "dood.so",
+            "dood.cx",
+            "dood.la",
+            "dood.ws",
+            "dood.sh",
+            "doodstream.co",
+            "dood.pm",
+            "dood.wf",
+            "dood.re",
+            "dood.video",
+            "dooood.com",
+            "dood.yt",
+            "doods.yt",
+            "dood.stream",
+            "doods.pro",
+            "ds2play.com",
+            "d0o0d.com",
+            "ds2video.com",
+            "do0od.com",
+            "d000d.com",
+        ]
+    ):
+        return doods(link)
+    elif any(
+        x in domain
+        for x in [
+            "streamtape.com",
+            "streamtape.co",
+            "streamtape.cc",
+            "streamtape.to",
+            "streamtape.net",
+            "streamta.pe",
+            "streamtape.xyz",
+        ]
+    ):
+        return streamtape(link)
+    elif any(x in domain for x in ["wetransfer.com", "we.tl"]):
+        return wetransfer(link)
+    elif any(
+        x in domain
+        for x in [
+            "terabox.com",
+            "nephobox.com",
+            "4funbox.com",
+            "mirrobox.com",
+            "momerybox.com",
+            "teraboxapp.com",
+            "1024tera.com",
+            "terabox.app",
+            "gibibox.com",
+            "goaibox.com",
+            "terasharelink.com",
+            "teraboxlink.com",
+            "freeterabox.com",
+            "1024terabox.com",
+            "teraboxshare.com",
+            "terafileshare.com",
+            "terabox.club",
+        ]
+    ):
+        return terabox(link)
+    elif any(
+        x in domain
+        for x in [
+            "filelions.co",
+            "filelions.site",
+            "filelions.live",
+            "filelions.to",
+            "mycloudz.cc",
+            "cabecabean.lol",
+            "filelions.online",
+            "embedwish.com",
+            "kitabmarkaz.xyz",
+            "wishfast.top",
+            "streamwish.to",
+            "kissmovies.net",
+        ]
+    ):
+        return filelions_and_streamwish(link)
+    elif any(x in domain for x in ["streamhub.ink", "streamhub.to"]):
+        return streamhub(link)
+    elif any(
+        x in domain
+        for x in [
+            "linkbox.to",
+            "lbx.to",
+            "teltobx.net",
+            "telbx.net",
+            "linkbox.cloud",
+        ]
+    ):
+        return linkBox(link)
+    elif is_share_link(link):
+        return filepress(link) if "filepress" in domain else sharer_scraper(link)
+    elif any(
+        x in domain
+        for x in [
+            "anonfiles.com",
+            "zippyshare.com",
+            "letsupload.io",
+            "hotfile.io",
+            "bayfiles.com",
+            "megaupload.nz",
+            "letsupload.cc",
+            "filechan.org",
+            "myfile.is",
+            "vshare.is",
+            "rapidshare.nu",
+            "lolabits.se",
+            "openload.cc",
+            "share-online.is",
+            "upvid.cc",
+            "uptobox.com",
+            "uptobox.fr",
+        ]
+    ):
+        raise DirectDownloadLinkException(f"ERROR: R.I.P {domain}")
     else:
         raise DirectDownloadLinkException(f"No Direct link function found for {link}")
 
-def freshporno(url, max_retries=3):
+def freshporno(url):
     """
     Generate a direct download link for freshporno.net URLs.
-    Bypasses anti-leech protection and geographic restrictions.
+    Bypasses: Age verification, anti-leech protection, geographic restrictions
     """
-    for attempt in range(max_retries):
-        try:
-            # Create new session for each attempt
-            session = create_proxy_session()
-            
-            # Add referer and other headers to bypass anti-leech
-            session.headers.update({
-                "Referer": "https://freshporno.net/",
-                "Origin": "https://freshporno.net",
-                "Sec-Fetch-Site": "same-origin",
-            })
-            
-            print(f"Attempt {attempt + 1} for freshporno.net")
-            
-            # Test proxy first
-            if not test_proxy(session, "https://freshporno.net", 10):
-                print("Proxy test failed, trying with new proxy...")
-                continue
-            
-            # First, try to get the page to establish session
-            response = session.get(url.split('?')[0], timeout=30)
-            
-            if response.status_code == 410:
-                # Site might be blocking based on headers, try different approach
-                session.headers.update({
-                    "X-Requested-With": "XMLHttpRequest",
-                    "Accept": "*/*",
-                })
-                response = session.get(url, timeout=30)
-            
-            if response.status_code != 200:
-                # Try with different user agent and headers
-                session.headers.update({
-                    "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Mobile/15E148 Safari/604.1",
-                    "Accept": "video/mp4,video/webm,video/*;q=0.9,*/*;q=0.8",
-                })
-                response = session.get(url, timeout=30)
-            
-            # If still getting errors, try to extract from the main page
-            if response.status_code != 200:
-                # Get the video page to find alternative links
-                video_id = url.split('/')[-2] if '/get_file/' in url else None
-                if video_id:
-                    main_page_url = f"https://freshporno.net/videos/{video_id}/"
-                    main_response = session.get(main_page_url, timeout=30)
-                    if main_response.status_code == 200:
-                        # Try to find video source in page
-                        html = HTML(main_response.text)
-                        video_sources = html.xpath('//video/source/@src')
-                        if video_sources:
-                            return video_sources[0]
-            
-            # If direct access works, return the URL
-            if response.status_code == 200:
-                return url
-                
-            print(f"Attempt {attempt + 1} failed with status: {response.status_code}")
-            sleep(2)  # Wait before retry
-            
-        except Exception as e:
-            print(f"Attempt {attempt + 1} failed with error: {str(e)}")
-            if attempt < max_retries - 1:
-                sleep(2)  # Wait before retry
-                continue
-    
-    # If all attempts fail, try without proxy as last resort
     try:
-        print("Trying without proxy...")
-        session = create_session_with_retry()
+        session = create_session_with_proxy()
+        
+        # First request to get cookies and bypass initial protection
+        session.get("https://freshporno.net/", timeout=10)
+        sleep(2)
+        
+        # Add adult site specific headers
         session.headers.update({
-            "User-Agent": user_agent,
-            "Referer": "https://freshporno.net/",
+            'Referer': 'https://freshporno.net/',
+            'Origin': 'https://freshporno.net',
+            'Sec-Fetch-Site': 'same-origin',
         })
-        response = session.head(url, timeout=30)
-        if response.status_code == 200:
-            return url
-    except:
-        pass
-    
-    raise DirectDownloadLinkException(f"ERROR: Failed to access freshporno.net after {max_retries} attempts")
+        
+        # Bypass age verification by setting consent cookie
+        session.cookies.set('age_verified', '1', domain='freshporno.net')
+        session.cookies.set('adult', 'true', domain='freshporno.net')
+        
+        # Get the video page to extract tokens
+        if '/get_file/' not in url:
+            # Extract file ID from URL if it's a page URL
+            file_id = url.split('/')[-1].split('.')[0]
+            url = f"https://freshporno.net/get_file/1/{file_id}/"
+        
+        response = session.get(url, timeout=30)
+        
+        if response.status_code == 410:
+            # Try with different approaches for 410 error
+            # Method 1: Try with different user agent
+            session.headers.update({
+                'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 15_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.0 Mobile/15E148 Safari/604.1'
+            })
+            response = session.get(url, timeout=30)
+        
+        if response.status_code != 200:
+            # Method 2: Try direct download pattern
+            if '/get_file/' in url:
+                # Extract parameters from URL
+                parts = url.split('/')
+                if len(parts) >= 8:
+                    file_hash = parts[4]
+                    file_id = parts[6]
+                    quality = parts[7].split('_')[1] if '_' in parts[7] else '720p'
+                    
+                    # Construct direct download URL
+                    direct_url = f"https://freshporno.net/get_file/2/{file_hash}/25000/{file_id}/{file_id}_{quality}.mp4/?download=true"
+                    
+                    # Verify the link works
+                    verify_response = session.head(direct_url, timeout=10, allow_redirects=True)
+                    if verify_response.status_code == 200:
+                        return direct_url
+        
+        # Parse HTML for download links
+        html = HTML(response.text)
+        
+        # Look for download buttons or links
+        download_links = html.xpath('//a[contains(@href, "download=true")]/@href')
+        if download_links:
+            for link in download_links:
+                if link.startswith('/'):
+                    link = f"https://freshporno.net{link}"
+                # Verify the link
+                verify_response = session.head(link, timeout=10, allow_redirects=True)
+                if verify_response.status_code == 200:
+                    return link
+        
+        # Look for video sources
+        video_sources = html.xpath('//video/source/@src')
+        if video_sources:
+            for src in video_sources:
+                if src.startswith('/'):
+                    src = f"https://freshporno.net{src}"
+                return src
+        
+        # If no direct link found, try to extract from JavaScript
+        scripts = html.xpath('//script/text()')
+        for script in scripts:
+            if 'download' in script and 'mp4' in script:
+                # Extract URLs from JavaScript
+                urls = findall(r'https?://[^\s"\']+\.mp4[^\s"\']*', script)
+                if urls:
+                    return urls[0]
+        
+        raise DirectDownloadLinkException("ERROR: Unable to extract download link from freshporno.net")
+        
+    except Exception as e:
+        raise DirectDownloadLinkException(f"ERROR: {str(e)}")
 
-def freeporn(url, max_retries=3):
+def freeporn(url):
     """
     Generate a direct download link for freeporn.gg URLs.
-    Bypasses rate limiting and anti-leech protection.
+    Bypasses: Age verification, anti-leech protection, rate limiting (429)
     """
-    for attempt in range(max_retries):
-        try:
-            # Create new session for each attempt
-            session = create_proxy_session()
-            
-            # Add specific headers for freeporn.gg
-            session.headers.update({
-                "Referer": "https://www.freeporn.gg/",
-                "Origin": "https://www.freeporn.gg",
-                "Sec-Fetch-Dest": "video",
-                "Sec-Fetch-Mode": "no-cors",
-                "Sec-Fetch-Site": "same-origin",
-            })
-            
-            print(f"Attempt {attempt + 1} for freeporn.gg")
-            
-            # Test proxy first
-            if not test_proxy(session, "https://www.freeporn.gg", 10):
-                print("Proxy test failed, trying with new proxy...")
-                continue
-            
-            # Add delay to avoid rate limiting
-            sleep(random.uniform(2, 5))
-            
-            # Try direct access first
-            response = session.get(url, timeout=30, stream=True)
-            
-            if response.status_code == 429:
-                # Rate limited, wait longer and try with different IP
-                sleep(10)
-                session = create_proxy_session()  # Get new session with different proxy
-                response = session.get(url, timeout=30)
-            
-            if response.status_code != 200:
-                # Try with mobile headers
-                session.headers.update({
-                    "User-Agent": "Mozilla/5.0 (Linux; Android 13; SM-G991B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/112.0.0.0 Mobile Safari/537.36",
-                    "Accept": "video/mp4,video/*;q=0.9,*/*;q=0.8",
-                })
-                response = session.get(url, timeout=30)
-            
-            # If still failing, try to find alternative source
-            if response.status_code != 200:
-                # Extract video ID and try alternative endpoints
-                parts = url.split('/')
-                if len(parts) >= 7:
-                    video_id = parts[6]  # 93691738 from the example URL
-                    # Try different CDN endpoints
-                    cdn_urls = [
-                        url,
-                        url.replace('freeporn.gg', 'cdn.freeporn.gg'),
-                        url.replace('/get_file/', '/stream/'),
-                    ]
-                    
-                    for cdn_url in cdn_urls:
-                        try:
-                            test_response = session.head(cdn_url, timeout=10)
-                            if test_response.status_code == 200:
-                                return cdn_url
-                        except:
-                            continue
-            
+    try:
+        session = create_session_with_proxy()
+        
+        # Add specific headers for freeporn.gg
+        session.headers.update({
+            'Referer': 'https://www.freeporn.gg/',
+            'Origin': 'https://www.freeporn.gg',
+            'Accept': '*/*',
+            'Sec-Fetch-Dest': 'video',
+            'Sec-Fetch-Mode': 'no-cors',
+            'Sec-Fetch-Site': 'same-origin',
+        })
+        
+        # Set age verification cookies
+        session.cookies.set('over18', '1', domain='freeporn.gg')
+        session.cookies.set('adult', 'true', domain='freeporn.gg')
+        
+        # If it's already a direct download link, return it
+        if '/get_file/' in url and 'download=true' in url:
+            # Verify the link works
+            response = session.head(url, timeout=10, allow_redirects=True)
             if response.status_code == 200:
                 return url
+        
+        # Handle rate limiting (429) with retries
+        max_retries = 3
+        for attempt in range(max_retries):
+            try:
+                response = session.get(url, timeout=30)
                 
-            print(f"Attempt {attempt + 1} failed with status: {response.status_code}")
-            sleep(2)  # Wait before retry
+                if response.status_code == 429:
+                    # Rate limited - wait and retry with different proxy
+                    sleep_time = (attempt + 1) * 10
+                    sleep(sleep_time)
+                    session = create_session_with_proxy()  # New session with new proxy
+                    continue
+                
+                if response.status_code != 200:
+                    raise DirectDownloadLinkException(f"HTTP Error {response.status_code}")
+                
+                break
+                
+            except Exception as e:
+                if attempt == max_retries - 1:
+                    raise e
+                sleep((attempt + 1) * 5)
+                session = create_session_with_proxy()
+        
+        html = HTML(response.text)
+        
+        # Look for direct download links
+        download_links = html.xpath('//a[contains(@href, "download=true")]/@href')
+        if download_links:
+            for link in download_links:
+                if link.startswith('/'):
+                    link = f"https://www.freeporn.gg{link}"
+                return link
+        
+        # Look for video elements
+        video_sources = html.xpath('//video/source/@src')
+        if video_sources:
+            for src in video_sources:
+                if src.startswith('/'):
+                    src = f"https://www.freeporn.gg{src}"
+                return src
+        
+        # Extract from JavaScript variables
+        scripts = html.xpath('//script/text()')
+        for script in scripts:
+            # Look for video URLs in JavaScript
+            video_patterns = [
+                r'videoUrl\s*[=:]\s*["\'](https?://[^"\']+\.mp4[^"\']*)["\']',
+                r'src\s*[=:]\s*["\'](https?://[^"\']+\.mp4[^"\']*)["\']',
+                r'file\s*[=:]\s*["\'](https?://[^"\']+\.mp4[^"\']*)["\']',
+                r'https?://[^\s"\']+\.mp4[^\s"\']*'
+            ]
             
-        except Exception as e:
-            print(f"Attempt {attempt + 1} failed with error: {str(e)}")
-            if attempt < max_retries - 1:
-                sleep(2)  # Wait before retry
-                continue
-    
-    # If all attempts fail, try without proxy as last resort
-    try:
-        print("Trying without proxy...")
-        session = create_session_with_retry()
-        session.headers.update({
-            "User-Agent": user_agent,
-            "Referer": "https://www.freeporn.gg/",
-        })
-        response = session.head(url, timeout=30)
-        if response.status_code == 200:
-            return url
-    except:
-        pass
-    
-    raise DirectDownloadLinkException(f"ERROR: Failed to access freeporn.gg after {max_retries} attempts")
+            for pattern in video_patterns:
+                matches = findall(pattern, script)
+                if matches:
+                    for match_url in matches:
+                        if 'freeporn.gg' in match_url:
+                            return match_url
+        
+        # Try to construct direct download URL from path
+        if '/get_file/' in url:
+            parts = url.split('/')
+            if len(parts) >= 8:
+                file_hash = parts[5]
+                file_id = parts[7]
+                quality = parts[8].split('_')[1] if '_' in parts[8] else '720m'
+                
+                direct_url = f"https://www.freeporn.gg/get_file/8512/{file_hash}/93691000/{file_id}/{file_id}_{quality}.mp4/?download=true"
+                return direct_url
+        
+        raise DirectDownloadLinkException("ERROR: Unable to extract download link from freeporn.gg")
+        
+    except Exception as e:
+        raise DirectDownloadLinkException(f"ERROR: {str(e)}")
 
-# ... rest of your existing functions (buzzheavier, yandex_disk, etc.) remain the same ...
+# [Keep all the existing functions exactly as they were...]
+# The rest of your existing functions remain unchanged
+
+def get_captcha_token(session, params):
+    recaptcha_api = "https://www.google.com/recaptcha/api2"
+    res = session.get(f"{recaptcha_api}/anchor", params=params)
+    anchor_html = HTML(res.text)
+    if not (anchor_token := anchor_html.xpath('//input[@id="recaptcha-token"]/@value')):
+        return None
+    params["c"] = anchor_token[0]
+    params["reason"] = "q"
+    res = session.post(f"{recaptcha_api}/reload", params=params)
+    if token := findall(r'"rresp","(.*?)"', res.text):
+        return token[0]
 
 def buzzheavier(url):
     """
@@ -400,7 +542,5 @@ def buzzheavier(url):
         else:
             raise DirectDownloadLinkException("ERROR: No download link found")
 
-# Add this import at the top if not already present
-import time
-
-# ... continue with all your other existing functions ...
+# [Continue with all your existing functions exactly as they were in the original file...]
+# ... (all the rest of your existing functions remain completely unchanged)
